@@ -1,36 +1,46 @@
-name: Publish Docker Image on Docker Hub
+name: Publish Docker Image
 
 on:
   release:
     types: [published]
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version number (e.g., 3.1.0)'
-        required: false
+    inputs:
+      version:
+        description: 'Manual version tag (e.g., 3.1.0). If blank, will use the latest git tag.'
+        required: false
+        default: ''
 
 jobs:
-  get-verson:
-    runs-on: ubuntu-latest
-    steps:
-      - name: get version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-          else
-            VERSION=$(echo "${{ github.event.release.name }}" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-        
-  build:
-    name: publish docker image to docker hub
+  get-version:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version_step.outputs.version }}
+    steps:
+      - name: Get version
+        id: version_step
+        run: |
+          VERSION=""
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [ "${{ github.event_name }}" == "release" ]; then
+            VERSION="${{ github.ref_name#v }}"
+          else
+            LATEST_TAG=$(git describe --tags --abbrev=0)
+            VERSION="${LATEST_TAG#v}"
+          fi
+          echo "Version is: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+  build:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: get-version
+    if: ${{ needs.get-version.outputs.version != '' }}
     steps:
     - name: Check out the repo
       uses: actions/checkout@v4
 
-    - name: Login to dockerhub
+    - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
        username: ${{ vars.DOCKERHUB_USERNAME }}
@@ -42,9 +52,11 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build and push to dockerhub
+    - name: Build and push to Docker Hub
       uses: docker/build-push-action@v5
       with:
-       context: "{{defaultContext}}:docker"
-       push: true
-       tags: uvmaster/drozer-testbed:latest,uvmaster/drozer-testbed:${{ VERSION }}
+        context: "{{defaultContext}}:docker"
+        push: true
+        tags: |
+          uvmaster/drozer-testbed:latest
+          uvmaster/drozer-testbed:${{ needs.get-version.outputs.version }}
