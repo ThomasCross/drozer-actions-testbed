@@ -1,4 +1,4 @@
-FROM alpine:3.19.1 as builder
+FROM alpine:latest as builder
 ADD "https://api.github.com/repos/ReversecLabs/drozer/commits?per_page=1" latest_commit
 RUN apk add --no-cache \
 		openjdk11-jdk \
@@ -24,7 +24,7 @@ RUN apk add --no-cache \
 	    build && \
 	python -m build
 
-FROM alpine:3.19.1
+FROM alpine:latest
 ADD "https://api.github.com/repos/ReversecLabs/drozer/commits?per_page=1" latest_commit
 RUN --mount=target=/builder,from=builder,source=/drozer apk add --no-cache \
 		openjdk11-jre-headless \
