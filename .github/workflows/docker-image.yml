@@ -26,4 +26,4 @@ jobs:
       with:
        context: "{{defaultContext}}:docker"
        push: true
-       tags: ReversecLabs/drozer:latest,name/app:${{ github.event.inputs.version }}
+       tags: ThomasCross/drozer-actions-testbed:latest,ThomasCross/drozer-actions-testbed:${{ github.event.inputs.version }}
