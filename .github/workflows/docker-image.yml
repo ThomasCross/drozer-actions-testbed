@@ -6,9 +6,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Manual version tag (e.g., 3.1.0). If blank, will use the latest git tag.'
-        required: false
-        default: ''
+        description: 'Version tag (e.g., 3.1.0)'
+        required: true # Making it required for manual runs to avoid errors
 
 jobs:
   get-version:
@@ -16,25 +15,23 @@ jobs:
     outputs:
       version: ${{ steps.version_step.outputs.version }}
     steps:
-      - name: Get version
+      - name: Determine version
         id: version_step
         run: |
           VERSION=""
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-          elif [ "${{ github.event_name }}" == "release" ]; then
-            VERSION="${{ github.ref_name#v }}"
+          if [ "${{ github.event_name }}" == "release" ]; then
+            VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
           else
-            LATEST_TAG=$(git describe --tags --abbrev=0)
-            VERSION="${LATEST_TAG#v}"
+            VERSION="${{ github.event.inputs.version }}"
           fi
-          echo "Version is: $VERSION"
+          echo "Version determined: $VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: get-version
+    # This check ensures we don't proceed if the version somehow ends up empty
     if: ${{ needs.get-version.outputs.version != '' }}
     steps:
     - name: Check out the repo
@@ -57,6 +54,7 @@ jobs:
       with:
         context: "{{defaultContext}}:docker"
         push: true
+        platforms: linux/amd64,linux/arm64
         tags: |
           uvmaster/drozer-testbed:latest
           uvmaster/drozer-testbed:${{ needs.get-version.outputs.version }}
