@@ -32,4 +32,4 @@ jobs:
       with:
        context: "{{defaultContext}}:docker"
        push: true
-       tags: ThomasCross/drozer-actions-testbed:latest,ThomasCross/drozer-actions-testbed:${{ github.event.inputs.version }}
+       tags: uvmaster/drozer-testbed:latest,uvmaster/drozer-testbed:${{ github.event.inputs.version }}
