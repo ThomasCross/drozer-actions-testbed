@@ -26,15 +26,45 @@ jobs:
           fi
           echo "Version determined: $VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-  docker-hub:
-    name: Build and Push Docker Image
+  update-version:
+    name: Update Version Number in `src/drozer/__init__.py`
     runs-on: ubuntu-latest
     needs: get-version
     if: ${{ needs.get-version.outputs.version != '' }}
     steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+        with:
+          ref: 'develop'
+
+      - name: Update version in __init__.py
+        run: |
+          VERSION=${{ needs.get-version.outputs.version }}
+          echo "Updating version to $VERSION in src/drozer/__init__.py"
+          sed -i "s/__version__ = .*/__version__ = \"$VERSION\"/" src/drozer/__init__.py
+
+      - name: Verify file content
+        run: cat src/drozer/__init__.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add src/drozer/__init__.py
+          git commit -m "chore: Update version to ${{ needs.get-version.outputs.version }}"
+          git push
+  
+  docker-hub:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [get-version, update-version]
+    if: ${{ needs.get-version.outputs.version != '' }}
+    
+    steps:
     - name: Check out the repo
       uses: actions/checkout@v4
+      with:
+          ref: 'develop'
 
     - name: Login to Docker Hub
       uses: docker/login-action@v3
@@ -61,7 +91,7 @@ jobs:
   pypi:
     name: Build and publish to PyPI
     runs-on: ubuntu-latest
-    needs: get-version
+    needs: [get-version, update-version]
     if: ${{ needs.get-version.outputs.version != '' }}
     
     permissions:
@@ -74,6 +104,8 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
+        with:
+          ref: 'develop'
         
       - name: Set up Python
         uses: actions/setup-python@v5
