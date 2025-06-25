@@ -27,11 +27,10 @@ jobs:
           echo "Version determined: $VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-  build:
+  docker-hub:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: get-version
-    # This check ensures we don't proceed if the version somehow ends up empty
     if: ${{ needs.get-version.outputs.version != '' }}
     steps:
     - name: Check out the repo
@@ -58,3 +57,34 @@ jobs:
         tags: |
           uvmaster/drozer-testbed:latest
           uvmaster/drozer-testbed:${{ needs.get-version.outputs.version }}
+
+  pypi:
+    name: Build and publish to PyPI
+    runs-on: ubuntu-latest
+    needs: get-version
+    if: ${{ needs.get-version.outputs.version != '' }}
+    
+    permissions:
+      id-token: write
+      
+    environment: 
+      name: pypi
+      url: https://pypi.org/p/drozer-testbed
+      
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+          
+      - name: Install build dependencies
+        run: python -m pip install --upgrade pip build twine
+        
+      - name: Build package
+        run: python -m build
+        
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
