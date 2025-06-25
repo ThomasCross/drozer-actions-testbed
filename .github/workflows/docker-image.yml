@@ -75,7 +75,7 @@ jobs:
     if: |
       always() &&
       needs.get-version.outputs.version != '' &&
-      (github.event_name == 'release' || github.event.inputs.push_to_docker_hub == 'true')
+      (github.event_name == 'release' || github.event.inputs.push_to_docker_hub == 'true') && false
       
     steps:
     - name: Check out the repo
