@@ -75,7 +75,7 @@ jobs:
     if: |
       always() &&
       needs.get-version.outputs.version != '' &&
-      (github.event_name == 'release' || github.event.inputs.push_to_docker_hub == 'true') && false
+      (github.event_name == 'release' || github.event.inputs.push_to_docker_hub == 'true')
       
     steps:
     - name: Check out the repo
@@ -175,4 +175,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: >
-          gh release upload ${{ github.event.release.tag_name }} dist/*
+          gh release upload ${{ github.event.release.tag_name }} dist/!(*.publish.attestation)
