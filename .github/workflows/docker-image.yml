@@ -43,8 +43,7 @@ jobs:
     name: Update Version Number in `src/drozer/__init__.py`
     runs-on: ubuntu-latest
     needs: get-version
-    if: ${{ needs.get-version.outputs.version != '' && (github.event_name == 'release' || github.event.inputs.update_version == 'true') }}
-    steps:
+    if: ${{ needs.get-version.outputs.version != '' && (github.event_name == 'release' || github.event.inputs.update_version == 'true') }}    steps:
       - name: Check out the repo
         uses: actions/checkout@v4
         with:
@@ -71,8 +70,10 @@ jobs:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: [get-version, update-version]
-    if: ${{ needs.get-version.outputs.version != '' && (github.event_name == 'release' || github.event.inputs.push_to_docker_hub == 'true') }}
-    
+    if: |
+      needs.get-version.outputs.version != '' &&
+      (needs.update-version.result == 'success' || needs.update-version.result == 'skipped') &&
+      (github.event_name == 'release' || github.event.inputs.push_to_docker_hub == 'true')
     steps:
     - name: Check out the repo
       uses: actions/checkout@v4
@@ -105,8 +106,11 @@ jobs:
     name: Build and publish to PyPI
     runs-on: ubuntu-latest
     needs: [get-version, update-version]
-    if: ${{ needs.get-version.outputs.version != ''  && (github.event_name == 'release' || github.event.inputs.push_to_pypi == 'true') }}
-    
+    if: |
+      needs.get-version.outputs.version != '' &&
+      (needs.update-version.result == 'success' || needs.update-version.result == 'skipped') &&
+      (github.event_name == 'release' || github.event.inputs.push_to_pypi == 'true')
+      
     permissions:
       id-token: write
       
