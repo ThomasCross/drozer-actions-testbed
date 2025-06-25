@@ -157,6 +157,11 @@ jobs:
       contents: write # Required to write to a release
 
     steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+        with:
+          ref: 'develop'
+  
       - name: Download built Python packages
         uses: actions/download-artifact@v4
         with:
